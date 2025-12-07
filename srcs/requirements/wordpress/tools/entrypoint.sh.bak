@@ -16,7 +16,7 @@ if [ ! -f "$WWW_ROOT/wp-config.php" ]; then
   else
     DB_PASS="${WORDPRESS_DB_PASSWORD:-}"
   fi
-  DB_HOST="${WORDPRESS_DB_HOST:-mariadb:3306}"
+  DB_HOST="${WORDPRESS_DB_HOST:-db:3306}"
   DB_NAME="${WORDPRESS_DB_NAME:-wordpress}"
   DB_USER="${WORDPRESS_DB_USER:-root}"
 
