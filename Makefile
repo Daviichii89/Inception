@@ -10,7 +10,7 @@ all: up
 setup:
 	mkdir -p $(DATA_DIR) $(WP_DIR) $(DB_DIR)
 
-up:
+up: setup
 	cd srcs && docker compose up -d --build
 
 down:

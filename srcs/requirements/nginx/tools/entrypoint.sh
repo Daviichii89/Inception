@@ -2,6 +2,8 @@
 set -e
 
 WWW_ROOT="/var/www/html"
+SSL_DIR="/etc/ssl/certs"
+mkdir -p "$SSL_DIR"
 
 if [ -w "$WWW_ROOT" ]; then
 	echo "[entrypoint] $WWW_ROOT it's writable - adjusting permissions"
@@ -11,11 +13,11 @@ else
 fi
 
 # Validar certificados mínimos
-if [ ! -f /etc/ssl/certs/fullchain.pem ] || [ ! -f /etc/ssl/certs/privkey.pem ]; then
+if [ ! -f "$SSL_DIR/fullchain.pem" ] || [ ! -f "$SSL_DIR/privkey.pem" ]; then
   echo "[entrypoint] Warning: Certificates not found in /etc/ssl/certs; generating temporary self-signed certificates"
-  mkdir -p /etc/ssl/certs
+#  mkdir -p /etc/ssl/certs
   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/ssl/certs/privkey.pem -out /etc/ssl/certs/fullchain.pem \
+    -keyout "$SSL_DIR/privkey.pem" -out "$SSL_DIR/fullchain.pem" \
     -subj "/C=ES/ST=Barcelona/L=Barcelona/O=Inception/CN=localhost"
 fi
 

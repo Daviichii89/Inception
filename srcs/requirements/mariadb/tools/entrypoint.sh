@@ -1,60 +1,81 @@
 #!/bin/sh
 set -e
 
-# Ruta de datos dentro del contenedor
 DATADIR="/var/lib/mysql"
+RUNDIR="/run/mysqld"
 
-# Asegurar directorios y permisos
-mkdir -p /var/run/mysqld "$DATADIR"
-chown -R mysql:mysql /var/run/mysqld "$DATADIR"
+echo "[entrypoint] Setting permissions…"
+mkdir -p "$DATADIR" "$RUNDIR"
+chown -R mysql:mysql "$DATADIR" "$RUNDIR"
 
-# Si el directorio está vacío, inicializamos la base de datos
-if [ -z "$(ls -A "$DATADIR")" ]; then
-  echo "[entrypoint] Inicializando datos de MariaDB en $DATADIR"
-  mysqld --initialize-insecure --datadir="$DATADIR"
-fi
-
-# Si existen secretos, los usamos para configurar contraseña root
-# Espera que docker secrets monten en /run/secrets/*
+# ------------------------------------------------------------
+# 1. LEER SECRETS
+# ------------------------------------------------------------
 if [ -f /run/secrets/mariadb_root_password ]; then
-  ROOT_PASS="$(cat /run/secrets/mariadb_root_password)"
+    ROOT_PASS="$(cat /run/secrets/mariadb_root_password)"
 else
-  ROOT_PASS="${MYSQL_ROOT_PASSWORD:-}"
+    ROOT_PASS="${MYSQL_ROOT_PASSWORD:-}"
 fi
 
-# Si root tiene contraseña, aplicarla en primera ejecución
-# Lanzamos mariadb en background para ejecutar acciones de inicialización seguras
-if [ -n "$ROOT_PASS" ]; then
-  echo "[entrypoint] Starting temporary mysqld to set root password and create DB/user if needed"
-  mysqld --skip-networking --datadir="$DATADIR" &
-  pid="$!"
+if [ -f /run/secrets/wp_db_password ]; then
+    WP_PASS="$(cat /run/secrets/wp_db_password)"
+else
+    WP_PASS="${WORDPRESS_DB_PASSWORD:-}"
+fi
 
-  # esperar a que mariadb esté listo
-  i=0
-  while ! mysqladmin ping --silent >/dev/null 2>&1; do
-    i=$((i+1))
-    if [ $i -gt 30 ]; then
-      echo "[entrypoint] mariadb did not start in time" >&2
-      tail -n 200 "$DATADIR"/*.err 2>/dev/null || true
-      exit 1
+WP_DB="${WORDPRESS_DB_NAME:-wordpress}"
+WP_USER="${WORDPRESS_DB_USER:-wp_user}"
+
+# ------------------------------------------------------------
+# 2. INICIALIZAR DATOS SI EL DIRECTORIO ESTÁ VACÍO
+# ------------------------------------------------------------
+if [ -z "$(ls -A "$DATADIR")" ]; then
+    echo "[entrypoint] Initializing MariaDB system tables..."
+    mysql_install_db --user=mysql --datadir="$DATADIR" >/dev/null
+fi
+
+# ------------------------------------------------------------
+# 3. ARRANCAR TEMPORALMENTE MARIADB PARA CONFIGURAR ROOT/USER
+# ------------------------------------------------------------
+echo "[entrypoint] Starting temporary MariaDB server…"
+su mysql -s /bin/sh -c "mysqld --skip-networking --datadir=$DATADIR" &
+TEMP_PID=$!
+
+# Esperar a que arranque
+for i in $(seq 1 30); do
+    if mysqladmin ping >/dev/null 2>&1; then
+        break
     fi
     sleep 1
-  done
+done
 
-  # aplicar password root y crear DB/usuario si se piden variables de entorno
-  if [ -n "$WORDPRESS_DB_NAME" ] && [ -n "$WORDPRESS_DB_USER" ] && [ -n "$WORDPRESS_DB_PASSWORD" ]; then
-    mysql -e "CREATE DATABASE IF NOT EXISTS \`$WORDPRESS_DB_NAME\`;"
-    mysql -e "CREATE USER IF NOT EXISTS '$WORDPRESS_DB_USER'@'%' IDENTIFIED BY '$WORDPRESS_DB_PASSWORD';"
-    mysql -e "GRANT ALL PRIVILEGES ON \`$WORDPRESS_DB_NAME\`.* TO '$WORDPRESS_DB_USER'@'%';"
-    mysql -e "FLUSH PRIVILEGES;"
-  fi
-
-  # cambiar root password
-  mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}'; FLUSH PRIVILEGES;"
-
-  # detener proceso temporal
-  mysqladmin shutdown || kill "$pid" || true
+if ! mysqladmin ping >/dev/null 2>&1; then
+    echo "[entrypoint] ERROR: MariaDB did not start for initialization."
+    exit 1
 fi
 
-# Finalmente arrancar MariaDB en primer plano
-exec mysqld --datadir="$DATADIR"
+echo "[entrypoint] MariaDB is up, configuring…"
+
+# ------------------------------------------------------------
+# 4. APLICAR PASSWORD ROOT Y CREAR DB / USER
+# ------------------------------------------------------------
+mysql <<EOSQL
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}';
+FLUSH PRIVILEGES;
+
+CREATE DATABASE IF NOT EXISTS \`${WP_DB}\`;
+CREATE USER IF NOT EXISTS '${WP_USER}'@'%' IDENTIFIED BY '${WP_PASS}';
+GRANT ALL PRIVILEGES ON \`${WP_DB}\`.* TO '${WP_USER}'@'%';
+FLUSH PRIVILEGES;
+EOSQL
+
+echo "[entrypoint] Initialization complete."
+
+# Apagar el servidor temporal
+mysqladmin -uroot -p"${ROOT_PASS}" shutdown || kill "$TEMP_PID"
+
+# ------------------------------------------------------------
+# 5. ARRANCAR MARIADB DEFINITIVO EN FOREGROUND
+# ------------------------------------------------------------
+echo "[entrypoint] Launching MariaDB..."
+exec su mysql -s /bin/sh -c "mysqld --datadir=$DATADIR"

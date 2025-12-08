@@ -10,11 +10,11 @@ services:
     restart: unless-stopped
     secrets:
       - mariadb_root_password
+      - wp_db_password
     environment:
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mariadb_root_password
       - WORDPRESS_DB_NAME=wordpress
       - WORDPRESS_DB_USER=wp_user
-      - WORDPRESS_DB_PASSWORD_FILE=/run/secrets/wp_db_password
 
   wordpress:
     build: ./requirements/wordpress
@@ -30,7 +30,9 @@ services:
       - WORDPRESS_DB_HOST=mariadb:3306
       - WORDPRESS_DB_NAME=wordpress
       - WORDPRESS_DB_USER=wp_user
-      - WORDPRESS_DB_PASSWORD_FILE=/run/secrets/wp_db_password
+      - WORDPRESS_DB_PASSWORD=/run/secrets/wp_db_password
+    secrets:
+      - wp_db_password
 
   nginx:
     build: ./requirements/nginx
@@ -44,6 +46,8 @@ services:
     depends_on:
       - wordpress
     restart: unless-stopped
+    secrets:
+      - wp_db_password
 
 volumes:
   mariadb_data:

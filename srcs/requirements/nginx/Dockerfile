@@ -10,7 +10,7 @@ COPY ./conf/nginx.conf /etc/nginx/nginx.conf
 COPY ./sites-enabled/ /etc/nginx/sites-enabled/
 COPY ./certs/ /etc/ssl/certs/
 
-EXPOSE 443
+# EXPOSE 443
 
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
