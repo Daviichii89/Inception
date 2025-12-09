@@ -23,9 +23,6 @@ else
     WP_PASS="${WORDPRESS_DB_PASSWORD:-}"
 fi
 
-WP_DB="${WORDPRESS_DB_NAME:-wordpress}"
-WP_USER="${WORDPRESS_DB_USER:-wp_user}"
-
 # ------------------------------------------------------------
 # 2. INICIALIZAR DATOS SI EL DIRECTORIO ESTÁ VACÍO
 # ------------------------------------------------------------
@@ -63,9 +60,9 @@ mysql <<EOSQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}';
 FLUSH PRIVILEGES;
 
-CREATE DATABASE IF NOT EXISTS \`${WP_DB}\`;
-CREATE USER IF NOT EXISTS '${WP_USER}'@'%' IDENTIFIED BY '${WP_PASS}';
-GRANT ALL PRIVILEGES ON \`${WP_DB}\`.* TO '${WP_USER}'@'%';
+CREATE DATABASE IF NOT EXISTS \`${WORDPRESS_DB_NAME}\`;
+CREATE USER IF NOT EXISTS '${WORDPRESS_DB_USER}'@'%' IDENTIFIED BY '${WP_PASS}';
+GRANT ALL PRIVILEGES ON \`${WORDPRESS_DB_NAME}\`.* TO '${WORDPRESS_DB_USER}'@'%';
 FLUSH PRIVILEGES;
 EOSQL
 
