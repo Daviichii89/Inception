@@ -29,14 +29,14 @@ all: up
 	@echo "🎉 $(GREEN)$(BOLD)Server created successfully!$(RESET)"
 setup:
 	@echo "$(YELLOW)Creating folders...$(RESET)"
-	@sleep 1
+#	@sleep 1
 	@mkdir -p $(DATA_DIR) $(WP_DIR) $(DB_DIR)
 	@echo "$(GREEN)Created folders.$(RESET)"
 
 up: setup
 	@echo "$(YELLOW)Starting the server...$(RESET)"
 	@cd srcs && docker compose up -d --build
-	@sleep 1
+#	@sleep 1
 	@echo "\n"
 
 down:
@@ -47,10 +47,10 @@ clean:
 	@if [ -n "$$(cd srcs && docker compose ps -q)" ]; then \
 		echo "$(RED)Stopping server...$(RESET)"; \
 		cd srcs && docker compose down -v --rmi all >/dev/null 2>&1; \
-		sleep 1; \
+#		sleep 1; \
 		echo ""; \
 		echo "$(GREEN)$(BOLD)🎉 Server unmounted succesfully!$(RESET)"; \
-		sleep 1; \
+#		sleep 1; \
 	fi
 
 fclean: clean
@@ -59,13 +59,13 @@ fclean: clean
 		sudo rm -rf /home/davifer2/data; \
 		mkdir /home/davifer2/data; \
 		echo ""; \
-		sleep 2; \
+#		sleep 2; \
 		echo "$(GREEN)$(BOLD)🎉 Server destroyed succesfully!$(RESET)"; \
 	else \
 		echo "$(YELLOW)No data to clean, recreating data folder...$(RESET)"; \
 		sudo rm -rf /home/davifer2/data >/dev/null 2>&1; \
 		mkdir /home/davifer2/data; \
-		sleep 1; \
+#		sleep 1; \
 		echo "\n"; \
 		echo "$(GREEN)$(BOLD)🎉 Recreated data folder.$(RESET)"; \
 	fi
