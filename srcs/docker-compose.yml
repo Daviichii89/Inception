@@ -1,5 +1,6 @@
 services:
   mariadb:
+    image: mariadb
     build: ./requirements/mariadb
     container_name: mariadb
     volumes:
@@ -15,6 +16,7 @@ services:
       - WORDPRESS_DB_USER=${DB_USER}
 
   wordpress:
+    image: wordpress
     build: ./requirements/wordpress
     container_name: wordpress
     volumes:
@@ -40,6 +42,7 @@ services:
       - wp_root_password
 
   nginx:
+    image: nginx
     build: ./requirements/nginx
     container_name: nginx
     ports:
@@ -51,20 +54,14 @@ services:
     depends_on:
       - wordpress
     restart: unless-stopped
-    secrets:
-      - wp_db_password
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
 
 volumes:
   mariadb_data:
-    driver_opts:
-        device: /home/davifer2/data/mariadb
-        o: bind
-        type: none 
+    name: mariadb_data
   wp_data:
-    driver_opts:
-        device: /home/davifer2/data/wordpress
-        o: bind
-        type: none
+    name: wp_data
 
 networks:
   inception:

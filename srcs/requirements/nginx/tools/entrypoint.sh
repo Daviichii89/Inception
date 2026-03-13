@@ -3,6 +3,7 @@ set -e
 
 WWW_ROOT="/var/www/html"
 SSL_DIR="/etc/ssl/certs"
+CERT_DOMAIN="${DOMAIN_NAME:-localhost}"
 mkdir -p "$SSL_DIR"
 
 if [ -w "$WWW_ROOT" ]; then
@@ -18,7 +19,7 @@ if [ ! -f "$SSL_DIR/fullchain.pem" ] || [ ! -f "$SSL_DIR/privkey.pem" ]; then
 #  mkdir -p /etc/ssl/certs
   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout "$SSL_DIR/privkey.pem" -out "$SSL_DIR/fullchain.pem" \
-    -subj "/C=ES/ST=Barcelona/L=Barcelona/O=Inception/CN=localhost"
+    -subj "/C=ES/ST=Barcelona/L=Barcelona/O=Inception/CN=$CERT_DOMAIN"
 fi
 
 # Lanzar nginx en primer plano

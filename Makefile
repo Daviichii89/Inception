@@ -21,17 +21,11 @@ DARK_YELLOW	=	\033[38;5;143m
 NAME		:= inception
 COMPOSE_FILE	:= srcs
 
-DATA_DIR	:= /home/davifer2/data
-WP_DIR		:= $(DATA_DIR)/wordpress
-DB_DIR		:= $(DATA_DIR)/mariadb
-
 all: up
 	@echo "🎉 $(GREEN)$(BOLD)Server created successfully!$(RESET)"
 setup:
-	@echo "$(YELLOW)Creating folders...$(RESET)"
-#	@sleep 1
-	@mkdir -p $(DATA_DIR) $(WP_DIR) $(DB_DIR)
-	@echo "$(GREEN)Created folders.$(RESET)"
+	@echo "$(YELLOW)Checking environment...$(RESET)"
+	@echo "$(GREEN)Environment ready.$(RESET)"
 
 up: setup
 	@echo "$(YELLOW)Starting the server...$(RESET)"
@@ -54,21 +48,9 @@ clean:
 	fi
 
 fclean: clean
-	@if [ -d /home/davifer2/data ] && [ "$$(ls -A /home/davifer2/data)" ]; then \
-		echo "$(RED)Removing data...$(RESET)"; \
-		sudo rm -rf /home/davifer2/data; \
-		mkdir /home/davifer2/data; \
-		echo ""; \
-#		sleep 2; \
-		echo "$(GREEN)$(BOLD)🎉 Server destroyed succesfully!$(RESET)"; \
-	else \
-		echo "$(YELLOW)No data to clean, recreating data folder...$(RESET)"; \
-		sudo rm -rf /home/davifer2/data >/dev/null 2>&1; \
-		mkdir /home/davifer2/data; \
-#		sleep 1; \
-		echo "\n"; \
-		echo "$(GREEN)$(BOLD)🎉 Recreated data folder.$(RESET)"; \
-	fi
+	@echo "$(RED)Removing containers, images and volumes...$(RESET)"
+	@cd srcs && docker compose down -v --rmi all
+	@echo "$(GREEN)$(BOLD)🎉 Full cleanup completed.$(RESET)"
 
 
 re: fclean all

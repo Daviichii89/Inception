@@ -8,7 +8,6 @@ RUN apt update && apt install -y nginx openssl \
 # directorios de configuración que copiaremos
 COPY ./conf/nginx.conf /etc/nginx/nginx.conf
 COPY ./sites-enabled/ /etc/nginx/sites-enabled/
-COPY ./certs/ /etc/ssl/certs/
 
 # EXPOSE 443
 
