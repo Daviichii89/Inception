@@ -1,2 +1,4 @@
 secrets/*
 srcs/.env
+
+srcs/requirements/nginx/certs/*.pem
