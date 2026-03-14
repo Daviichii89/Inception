@@ -11,19 +11,29 @@ chown -R www-data:www-data "$WWW_ROOT"
 WORDPRESS_ROOT_PASS="$(cat /run/secrets/wp_root_password)"
 WORDPRESS_USER_PASS="$(cat /run/secrets/wp_user_password)"
 
+if [ -f /run/secrets/wp_db_password ]; then
+  DB_PASS="$(cat /run/secrets/wp_db_password)"
+else
+  DB_PASS="${WORDPRESS_DB_PASSWORD:-}"
+fi
+
+DB_HOST="${WORDPRESS_DB_HOST:-}"
+DB_PORT="${WORDPRESS_DB_PORT:-}"
+DB_NAME="${WORDPRESS_DB_NAME:-}"
+DB_USER="${WORDPRESS_DB_USER:-}"
+
+# Validate every variable required by wp-config generation, DB checks and wp-cli setup.
+for var_name in DB_HOST DB_PORT DB_NAME DB_USER WORDPRESS_URL WORDPRESS_TITLE WORDPRESS_ROOT WORDPRESS_ROOT_EMAIL WORDPRESS_USER WORDPRESS_USER_EMAIL DB_PASS WORDPRESS_ROOT_PASS WORDPRESS_USER_PASS; do
+  eval "var_value=\${$var_name}"
+  if [ -z "$var_value" ]; then
+    echo "[entrypoint] ERROR: Missing required value: $var_name" >&2
+    exit 1
+  fi
+done
+
 # Si no existe wp-config.php, generar uno básico usando env/secrets
 if [ ! -f "$WWW_ROOT/wp-config.php" ]; then
   echo "[entrypoint] Generando wp-config.php básico"
-  # obtener credenciales (revisamos secrets primero)
-  if [ -f /run/secrets/wp_db_password ]; then
-    DB_PASS="$(cat /run/secrets/wp_db_password)"
-  else
-    DB_PASS="${WORDPRESS_DB_PASSWORD:-}"
-  fi
-  DB_HOST="${WORDPRESS_DB_HOST:-mariadb:3306}"
-  DB_NAME="${WORDPRESS_DB_NAME:-wordpress}"
-  DB_USER="${WORDPRESS_DB_USER:-root}"
-
   # Usamos wp-config-sample.php para crear wp-config.php con valores mínimos
   cp "$WWW_ROOT/wp-config-sample.php" "$WWW_ROOT/wp-config.php"
   sed -i "s/database_name_here/$DB_NAME/" "$WWW_ROOT/wp-config.php"
@@ -37,10 +47,11 @@ fi
 wait_for_db() {
   tries=0
   max=30
-  until php -r "new mysqli('${WORDPRESS_DB_HOST:-mariadb}','${WORDPRESS_DB_USER:-wp_user}','$(cat /run/secrets/wp_db_password 2>/dev/null || echo ${WORDPRESS_DB_PASSWORD:-})','${WORDPRESS_DB_NAME:-wordpress}');" >/dev/null 2>&1
+  until php -r '$db = @new mysqli("'"$DB_HOST"'", "'"$DB_USER"'", "'"$DB_PASS"'", "'"$DB_NAME"'", '"$DB_PORT"'); if ($db->connect_errno) { fwrite(STDERR, $db->connect_error . PHP_EOL); exit(1); } $db->close();' >/tmp/wp-db-check.log 2>&1
   do
     tries=$((tries+1))
     if [ "$tries" -ge "$max" ]; then
+      cat /tmp/wp-db-check.log >&2
       echo "[entrypoint] ERROR: DB unreachable after $max attempts" >&2
       return 1
     fi

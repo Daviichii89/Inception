@@ -19,7 +19,7 @@ DARK_GREEN	=	\033[38;2;75;179;82m
 DARK_YELLOW	=	\033[38;5;143m
 
 NAME		:= inception
-COMPOSE_FILE	:= srcs
+COMPOSE_FILE	:= srcs/docker-compose.yml
 
 DATA_DIR	:= /home/davifer2/data
 WP_DIR		:= $(DATA_DIR)/wordpress
@@ -29,7 +29,6 @@ all: up
 	@echo "🎉 $(GREEN)$(BOLD)Server created successfully!$(RESET)"
 setup:
 	@echo "$(YELLOW)Creating folders...$(RESET)"
-#	@sleep 1
 	@mkdir -p $(DATA_DIR) $(WP_DIR) $(DB_DIR)
 	@echo "$(GREEN)Created folders.$(RESET)"
 
@@ -38,39 +37,27 @@ certs:
 
 up: setup certs
 	@echo "$(YELLOW)Starting the server...$(RESET)"
-	@cd srcs && docker compose up -d --build
-#	@sleep 1
+	@docker compose -f $(COMPOSE_FILE) up -d --build
 	@echo "\n"
 
 down:
 	@echo "$(RED)Stopping the server...$(RESET)"
-	@cd srcs && docker compose down
+	@docker compose -f $(COMPOSE_FILE) down
 
 clean:
-	@if [ -n "$$(cd srcs && docker compose ps -q)" ]; then \
-		echo "$(RED)Stopping server...$(RESET)"; \
-		cd srcs && docker compose down -v --rmi all >/dev/null 2>&1; \
-#		sleep 1; \
-		echo ""; \
-		echo "$(GREEN)$(BOLD)🎉 Server unmounted succesfully!$(RESET)"; \
-#		sleep 1; \
-	fi
+	@echo "$(RED)Stopping server...$(RESET)"
+	@docker compose -f $(COMPOSE_FILE) down -v --rmi all >/dev/null 2>&1
+	@echo ""
+	@echo "$(GREEN)$(BOLD)🎉 Server unmounted succesfully!$(RESET)"
 
 fclean: clean
 	@if [ -d /home/davifer2/data ] && [ "$$(ls -A /home/davifer2/data)" ]; then \
 		echo "$(RED)Removing data...$(RESET)"; \
 		sudo rm -rf /home/davifer2/data; \
-		mkdir /home/davifer2/data; \
 		echo ""; \
-#		sleep 2; \
 		echo "$(GREEN)$(BOLD)🎉 Server destroyed succesfully!$(RESET)"; \
 	else \
-		echo "$(YELLOW)No data to clean, recreating data folder...$(RESET)"; \
-		sudo rm -rf /home/davifer2/data >/dev/null 2>&1; \
-		mkdir /home/davifer2/data; \
-#		sleep 1; \
-		echo "\n"; \
-		echo "$(GREEN)$(BOLD)🎉 Recreated data folder.$(RESET)"; \
+		echo "$(YELLOW)No data to clean.$(RESET)"; \
 	fi
 
 
