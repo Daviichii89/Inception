@@ -46,6 +46,9 @@ services:
       - "443:443"
     volumes:
       - wp_data:/var/www/html:ro
+      - ./requirements/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./requirements/nginx/certs:/etc/nginx/certs:ro
+      - ./requirements/nginx/sites-enabled:/etc/nginx/sites-enabled:ro
     networks:
       - inception
     depends_on:
