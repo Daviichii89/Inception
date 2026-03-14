@@ -24,15 +24,24 @@ else
 fi
 
 # ------------------------------------------------------------
-# 2. INICIALIZAR DATOS SI EL DIRECTORIO ESTÁ VACÍO
+# 2. SI YA EXISTE LA BD, ARRANCAR DIRECTAMENTE
 # ------------------------------------------------------------
-if [ -z "$(ls -A "$DATADIR")" ]; then
+if [ -d "$DATADIR/mysql" ]; then
+    echo "[entrypoint] Existing MariaDB data detected, skipping initialization."
+    echo "[entrypoint] Launching MariaDB..."
+    exec su mysql -s /bin/sh -c "mysqld --datadir=$DATADIR"
+fi
+
+# ------------------------------------------------------------
+# 3. INICIALIZAR DATOS SI NO EXISTEN LAS TABLAS DEL SISTEMA
+# ------------------------------------------------------------
+if [ ! -d "$DATADIR/mysql" ]; then
     echo "[entrypoint] Initializing MariaDB system tables..."
     mysql_install_db --user=mysql --datadir="$DATADIR" >/dev/null
 fi
 
 # ------------------------------------------------------------
-# 3. ARRANCAR TEMPORALMENTE MARIADB PARA CONFIGURAR ROOT/USER
+# 4. ARRANCAR TEMPORALMENTE MARIADB PARA CONFIGURAR ROOT/USER
 # ------------------------------------------------------------
 echo "[entrypoint] Starting temporary MariaDB server…"
 su mysql -s /bin/sh -c "mysqld --skip-networking --datadir=$DATADIR" &
@@ -54,7 +63,7 @@ fi
 echo "[entrypoint] MariaDB is up, configuring…"
 
 # ------------------------------------------------------------
-# 4. APLICAR PASSWORD ROOT Y CREAR DB / USER
+# 5. APLICAR PASSWORD ROOT Y CREAR DB / USER
 # ------------------------------------------------------------
 mysql <<EOSQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${ROOT_PASS}';
@@ -72,7 +81,7 @@ echo "[entrypoint] Initialization complete."
 mysqladmin -uroot -p"${ROOT_PASS}" shutdown || kill "$TEMP_PID"
 
 # ------------------------------------------------------------
-# 5. ARRANCAR MARIADB DEFINITIVO EN FOREGROUND
+# 6. ARRANCAR MARIADB DEFINITIVO EN FOREGROUND
 # ------------------------------------------------------------
 echo "[entrypoint] Launching MariaDB..."
 exec su mysql -s /bin/sh -c "mysqld --datadir=$DATADIR"

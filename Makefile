@@ -33,7 +33,10 @@ setup:
 	@mkdir -p $(DATA_DIR) $(WP_DIR) $(DB_DIR)
 	@echo "$(GREEN)Created folders.$(RESET)"
 
-up: setup
+certs:
+	@./srcs/requirements/nginx/tools/generate_certs.sh $${DOMAIN_NAME:-localhost}
+
+up: setup certs
 	@echo "$(YELLOW)Starting the server...$(RESET)"
 	@cd srcs && docker compose up -d --build
 #	@sleep 1
@@ -73,4 +76,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: build up down clean logs
+.PHONY: build certs up down clean logs
