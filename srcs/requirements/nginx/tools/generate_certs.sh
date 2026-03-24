@@ -3,12 +3,15 @@
 set -e
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-CERTS_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../certs" && pwd)"
+CERTS_DIR="$SCRIPT_DIR/../certs"
 CERT_DOMAIN="${1:-${DOMAIN_NAME:-localhost}}"
 KEY_FILE="$CERTS_DIR/privkey.pem"
 CERT_FILE="$CERTS_DIR/fullchain.pem"
 
 mkdir -p "$CERTS_DIR"
+CERTS_DIR="$(CDPATH= cd -- "$CERTS_DIR" && pwd)"
+KEY_FILE="$CERTS_DIR/privkey.pem"
+CERT_FILE="$CERTS_DIR/fullchain.pem"
 
 if [ -f "$KEY_FILE" ] && [ -f "$CERT_FILE" ]; then
     if openssl x509 -checkend 0 -noout -in "$CERT_FILE" >/dev/null 2>&1; then

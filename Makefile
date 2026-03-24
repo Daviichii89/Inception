@@ -29,8 +29,17 @@ all: up
 	@echo "🎉 $(GREEN)$(BOLD)Server created successfully!$(RESET)"
 setup:
 	@echo "$(YELLOW)Creating folders...$(RESET)"
-	@mkdir -p $(DATA_DIR) $(WP_DIR) $(DB_DIR)
-	@echo "$(GREEN)Created folders.$(RESET)"
+	@created=0; \
+	for dir in $(DATA_DIR) $(WP_DIR) $(DB_DIR); do \
+		if [ ! -d "$$dir" ]; then \
+			mkdir -p "$$dir"; \
+			echo "$(GREEN)Created folder: $$dir$(RESET)"; \
+			created=1; \
+		fi; \
+	done; \
+	if [ $$created -eq 0 ]; then \
+		echo "$(MID_GRAY)Folders already exist.$(RESET)"; \
+	fi
 
 certs:
 	@./srcs/requirements/nginx/tools/generate_certs.sh $${DOMAIN_NAME:-localhost}
